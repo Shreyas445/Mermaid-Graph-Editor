@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mermaid Studio Pro - Flawless Interactive Engine</title>
+    
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Fira+Code:wght@400;500&family=Kalam:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- CodeMirror Editor -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/material-ocean.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/idea.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
+
+    <style>
+        :root {
+            /* Light Theme (Default) */
+            --bg-base: #f4f4f5; --bg-surface: #ffffff; --bg-elevated: #f4f4f5;
+            --border-color: #e4e4e7; --text-main: #18181b; --text-muted: #71717a;
+            --accent: #db2777; --accent-hover: #be185d;
+            --glass-bg: rgba(255, 255, 255, 0.8); --grid-color: rgba(0, 0, 0, 0.05);
+            --shadow: 0 10px 30px -10px rgba(0,0,0,0.1);
+            
+            /* Dynamic Config Variables */
+            --conf-node-bg: #2563eb; --conf-node-border: #1e40af;
+            --conf-cluster-bg: #fef08a; --conf-text: #ffffff; --conf-line: #64748b;
+        }
+
+        [data-theme="dark"] {
+            --bg-base: #09090b; --bg-surface: #18181b; --bg-elevated: #27272a;
+            --border-color: #3f3f46; --text-main: #f4f4f5; --text-muted: #a1a1aa;
+            --glass-bg: rgba(24, 24, 27, 0.7); --grid-color: rgba(255, 255, 255, 0.05);
+            --shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-base); color: var(--text-main); font-family: 'Inter', sans-serif;
+            height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        header {
+            height: 60px; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px; background-color: var(--bg-surface); border-bottom: 1px solid var(--border-color);
+            z-index: 10; transition: all 0.3s ease;
+        }
+
+        .brand { display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: 1.1rem; color: var(--text-main); }
+        .brand i { color: var(--accent); font-size: 1.2rem; }
+        .header-actions { display: flex; align-items: center; gap: 12px; }
+
+        .btn {
+            background: var(--bg-elevated); color: var(--text-main); border: 1px solid var(--border-color);
+            padding: 8px 16px; border-radius: 6px; font-size: 0.85rem; font-weight: 500;
+            cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+        }
+        .btn:hover { background: var(--border-color); }
+        .btn-primary { background: var(--accent); color: white; border: none; }
+        .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+        .btn-icon { width: 36px; height: 36px; padding: 0; justify-content: center; }
+
+        .workspace { display: flex; flex: 1; padding: 16px; gap: 16px; height: calc(100vh - 60px); }
+
+        .editor-panel {
+            width: 450px; background: var(--bg-surface); border: 1px solid var(--border-color);
+            border-radius: 12px; display: flex; flex-direction: column; overflow: hidden;
+            box-shadow: var(--shadow); transition: all 0.3s ease;
+        }
+
+        .tabs { display: flex; border-bottom: 1px solid var(--border-color); }
+        .tab {
+            padding: 12px 20px; font-size: 0.85rem; color: var(--text-muted); cursor: pointer;
+            border-bottom: 2px solid transparent; font-weight: 500; transition: all 0.2s;
+        }
+        .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+        .tab:hover:not(.active) { color: var(--text-main); }
+
+        .tab-content { flex: 1; position: relative; display: none; overflow-y: auto; }
+        .tab-content.active { display: block; }
+        
+        .CodeMirror {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0; height: 100%; 
+            font-family: 'Fira Code', monospace; font-size: 13px; background: transparent !important;
+        }
+        .CodeMirror-gutters { background: var(--bg-surface) !important; border-right: 1px solid var(--border-color) !important; }
+
+        .config-list { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+        .config-item { display: flex; flex-direction: column; gap: 10px; }
+        .config-item label { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }
+        .config-row { display: flex; align-items: center; justify-content: space-between; gap: 15px; }
+        
+        input[type="color"] { 
+            appearance: none; border: 1px solid var(--border-color); width: 44px; height: 28px; 
+            border-radius: 6px; cursor: pointer; background: none; padding: 2px;
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type="color"]::-webkit-color-swatch { border: none; border-radius: 4px; }
+        
+        input[type="range"] { 
+            flex: 1; accent-color: var(--accent); cursor: pointer; height: 4px; 
+            background: var(--bg-elevated); border-radius: 2px; outline: none; -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+            background: var(--accent); cursor: pointer; transition: transform 0.1s;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+        .editor-footer { display: flex; border-top: 1px solid var(--border-color); background: var(--bg-elevated); mt-auto; }
+        .footer-btn {
+            flex: 1; padding: 12px; border: none; background: transparent; color: var(--text-muted); 
+            font-size: 0.85rem; cursor: pointer; transition: color 0.2s; border-right: 1px solid var(--border-color);
+        }
+        .footer-btn:last-child { border-right: none; }
+        .footer-btn:hover { color: var(--text-main); background: rgba(0,0,0,0.05); }
+
+        .preview-panel {
+            flex: 1; background: var(--bg-surface); border: 1px solid var(--border-color);
+            border-radius: 12px; position: relative; overflow: hidden; box-shadow: var(--shadow);
+        }
+
+        .grid-bg {
+            position: absolute; inset: 0; background-image: radial-gradient(var(--grid-color) 1.5px, transparent 1.5px);
+            background-size: 24px 24px; z-index: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+
+        .toolbar {
+            position: absolute; z-index: 10; background: var(--glass-bg); backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 4px; display: flex; gap: 4px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+        .tb-top-left { top: 16px; left: 16px; padding: 8px 12px; font-size: 0.85rem; font-weight: 500; }
+        .tb-top-right { top: 16px; right: 16px; }
+        .tb-bottom-left { bottom: 16px; left: 16px; }
+        .tb-bottom-right { bottom: 16px; right: 16px; padding: 8px 12px; font-size: 0.85rem; color: var(--text-muted); }
+
+        .tool-btn {
+            width: 32px; height: 32px; border: none; background: transparent; color: var(--text-muted); 
+            border-radius: 6px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+        }
+        .tool-btn:hover, .tool-btn.active { background: var(--bg-elevated); color: var(--accent); }
+
+        .edit-badge {
+            display: none; background: var(--accent); color: white; padding: 4px 8px;
+            border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin-left: 8px; animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+        
+        .undo-toast {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            background: var(--bg-elevated); border: 1px solid var(--border-color); color: var(--text-main);
+            padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 500;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 50; box-shadow: var(--shadow);
+        }
+
+        .canvas-container {
+            width: 100%; height: 100%; position: absolute; z-index: 1;
+            display: flex; align-items: center; justify-content: center; cursor: grab; overflow: hidden;
+        }
+        .canvas-container:active { cursor: grabbing; }
+
+        #graph-output { transition: transform 0.1s ease-out; transform-origin: center; }
+        #graph-output svg { max-width: none; overflow: visible; transition: filter 0.2s; }
+        
+        /* Interactive Dragging Styles */
+        .visual-edit-mode { cursor: default !important; user-select: none; }
+        .visual-edit-mode .node, .visual-edit-mode .cluster { cursor: grab !important; transition: filter 0.2s; }
+        .visual-edit-mode .node:hover, .visual-edit-mode .cluster:hover { filter: brightness(1.05) drop-shadow(0 0 12px var(--accent)); }
+        .visual-edit-mode .node:active, .visual-edit-mode .cluster:active { cursor: grabbing !important; }
+        .visual-edit-mode .edgePaths path { transition: stroke 0.1s; }
+
+        .sketchify { filter: url(#pencil-filter) !important; }
+        .sketchify text { font-family: 'Kalam', cursive !important; filter: none; }
+
+        /* Dynamic CSS Overrides for Colors */
+        #graph-output svg .node rect, #graph-output svg .node circle, 
+        #graph-output svg .node polygon, #graph-output svg .node ellipse,
+        #graph-output svg .node path {
+            fill: var(--conf-node-bg) !important;
+            stroke: var(--conf-node-border) !important;
+        }
+        #graph-output svg .node text, #graph-output svg .node .label {
+            color: var(--conf-text) !important;
+            fill: var(--conf-text) !important;
+        }
+        #graph-output svg .cluster rect {
+            fill: var(--conf-cluster-bg) !important;
+            stroke: var(--conf-line) !important;
+        }
+        #graph-output svg .cluster text { fill: var(--text-main) !important; }
+        #graph-output svg .edgePaths path, #graph-output svg .edgePath .path { stroke: var(--conf-line) !important; }
+        #graph-output svg marker path { fill: var(--conf-line) !important; stroke: var(--conf-line) !important; }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+    </style>
+</head>
+<body data-theme="light">
+
+    <svg style="position: absolute; width: 0; height: 0;">
+        <filter id="pencil-filter">
+            <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" result="noise" />
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+    </svg>
+
+    <header>
+        <div class="brand">
+            <i class="fa-solid fa-code-branch"></i>
+            Mermaid Studio Pro <span class="edit-badge" id="edit-badge">EDIT MODE</span>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-icon" id="theme-toggle" title="Toggle Theme"><i class="fa-solid fa-moon"></i></button>
+            <button class="btn" onclick="copyCode()"><i class="fa-regular fa-copy"></i> Copy Code</button>
+            <button class="btn btn-primary" onclick="downloadSVG()"><i class="fa-solid fa-download"></i> Save Diagram</button>
+        </div>
+    </header>
+
+    <div class="workspace">
+        <div class="editor-panel">
+            <div class="tabs">
+                <div class="tab active" data-target="tab-code"><i class="fa-solid fa-code"></i> Code</div>
+                <div class="tab" data-target="tab-config"><i class="fa-solid fa-sliders"></i> Config</div>
+            </div>
+            
+            <div id="tab-code" class="tab-content active">
+                <textarea id="editor">
+graph TD
+    subgraph "Backend System"
+        API[API Gateway]
+        Auth{Is Valid?}
+        Micro[Microservices]
+    end
+    
+    subgraph "Storage"
+        DB[(Database)]
+        Cache[(Redis Cache)]
+    end
+
+    Start((Client Request)) --> API
+    API --> Auth
+    Auth -- Yes --> Micro
+    Auth -- No --> Deny[Access Denied]
+    Micro --> DB
+    Micro --> Cache
+    Cache -.-> API</textarea>
+            </div>
+
+            <div id="tab-config" class="tab-content">
+                <div class="config-list">
+                    <div class="config-item">
+                        <label>Node Fill Color</label>
+                        <div class="config-row">
+                            <input type="color" id="conf-node-bg" value="#2563eb">
+                        </div>
+                    </div>
+                    <div class="config-item">
+                        <label>Node Border Color</label>
+                        <div class="config-row">
+                            <input type="color" id="conf-node-border" value="#1e40af">
+                        </div>
+                    </div>
+                    <div class="config-item">
+                        <label>Subgraph Box Color</label>
+                        <div class="config-row">
+                            <input type="color" id="conf-cluster-bg" value="#fef08a">
+                        </div>
+                    </div>
+                    <div class="config-item">
+                        <label>Text Color</label>
+                        <div class="config-row">
+                            <input type="color" id="conf-text" value="#ffffff">
+                        </div>
+                    </div>
+                    <div class="config-item">
+                        <label>Arrow & Line Color</label>
+                        <div class="config-row">
+                            <input type="color" id="conf-line" value="#64748b">
+                        </div>
+                    </div>
+                    <div class="config-item">
+                        <label>Global Shadow Intensity</label>
+                        <div class="config-row">
+                            <i class="fa-solid fa-cloud-sun text-muted" style="font-size:0.8rem"></i>
+                            <input type="range" id="conf-shadow" min="0" max="40" value="15">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="editor-footer">
+                <button class="footer-btn"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Format</button>
+                <button class="footer-btn" onclick="forceResetGraph()"><i class="fa-solid fa-rotate-right"></i> Reset Layout</button>
+            </div>
+        </div>
+
+        <div class="preview-panel" id="preview-wrapper">
+            <div class="grid-bg"></div>
+            
+            <div class="toolbar tb-top-left">
+                <i class="fa-solid fa-circle-nodes" style="color: var(--accent)"></i> Live Viewer
+            </div>
+
+            <div class="toolbar tb-top-right">
+                <button class="tool-btn" id="btn-sketch" title="Sketch Mode"><i class="fa-solid fa-pencil"></i></button>
+                <div style="width: 1px; background: var(--border-color); margin: 4px;"></div>
+                <button class="tool-btn" onclick="resetZoom()" title="Fit"><i class="fa-solid fa-compress"></i></button>
+                <button class="tool-btn" onclick="zoom(-0.1)" title="Zoom Out"><i class="fa-solid fa-minus"></i></button>
+                <button class="tool-btn" onclick="zoom(0.1)" title="Zoom In"><i class="fa-solid fa-plus"></i></button>
+            </div>
+
+            <div class="toolbar tb-bottom-left">
+                <button class="tool-btn" id="btn-visual-edit" title="Edit Visually (Drag Nodes & Arrows)"><i class="fa-solid fa-pen-ruler"></i></button>
+                <button class="tool-btn active" id="grid-toggle" title="Toggle Grid"><i class="fa-solid fa-border-all"></i></button>
+            </div>
+
+            <div class="canvas-container" id="canvas">
+                <div id="graph-output"></div>
+            </div>
+            
+            <div class="undo-toast" id="undo-toast"><i class="fa-solid fa-rotate-left"></i> Undo Applied</div>
+        </div>
+    </div>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+
+        let isDark = false; 
+        let scale = 1;
+        let translateX = 0, translateY = 0;
+        let debounceTimer;
+
+        const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
+            mode: "javascript", theme: "idea", lineNumbers: true, lineWrapping: true
+        });
+
+        mermaid.initialize({ startOnLoad: false, theme: 'default', fontFamily: "'Inter', sans-serif" });
+
+        // Physics State Storage
+        let globalDragState = new Map();
+        let visualHistory = [];
+
+        function saveDragState() {
+            globalDragState.clear();
+            document.querySelectorAll('.node, .cluster').forEach(el => {
+                if (parseFloat(el.dataset.currDx || 0) !== 0 || parseFloat(el.dataset.currDy || 0) !== 0) {
+                    globalDragState.set(el.id, { dx: parseFloat(el.dataset.currDx), dy: parseFloat(el.dataset.currDy) });
+                }
+            });
+        }
+
+        // Core Layout Render
+        window.renderGraph = async () => {
+            const code = editor.getValue().trim();
+            if (!code) return;
+
+            saveDragState(); 
+
+            try {
+                const { svg } = await mermaid.render('mermaid-live-engine', code);
+                document.getElementById('graph-output').innerHTML = svg;
+                
+                // Initialize Base Properties
+                document.querySelectorAll('.node, .cluster').forEach(el => {
+                    const transform = el.getAttribute('transform');
+                    const match = transform ? transform.match(/translate\(([^,]+),\s*([^)]+)\)/) : null;
+                    el.dataset.baseX = match ? parseFloat(match[1]) : 0;
+                    el.dataset.baseY = match ? parseFloat(match[2]) : 0;
+                    el.dataset.currDx = 0;
+                    el.dataset.currDy = 0;
+                });
+
+                // Initialize Base Edge Routes - Bind strictly to .node IDs
+                document.querySelectorAll('.edgePaths path').forEach((path, i) => {
+                    path.dataset.baseD = path.getAttribute('d');
+                    path.id = 'edge_' + i;
+                    
+                    try {
+                        let startPt = path.getPointAtLength(0);
+                        let endPt = path.getPointAtLength(path.getTotalLength());
+                        const sourceNode = findNearestNodeOnly(startPt.x, startPt.y);
+                        const targetNode = findNearestNodeOnly(endPt.x, endPt.y);
+                        if(sourceNode) path.dataset.sourceId = sourceNode.id;
+                        if(targetNode) path.dataset.targetId = targetNode.id;
+                    } catch(e) {}
+                });
+
+                // Restore Drag Coordinates
+                let needsEdgeFix = false;
+                document.querySelectorAll('.node, .cluster').forEach(el => {
+                    if (globalDragState.has(el.id)) {
+                        const state = globalDragState.get(el.id);
+                        el.dataset.currDx = state.dx;
+                        el.dataset.currDy = state.dy;
+                        el.setAttribute('transform', `translate(${parseFloat(el.dataset.baseX) + state.dx}, ${parseFloat(el.dataset.baseY) + state.dy})`);
+                        needsEdgeFix = true;
+                    }
+                });
+
+                if(needsEdgeFix) recalculateAllEdges();
+
+            } catch (err) {}
+        };
+
+        editor.on('change', () => { clearTimeout(debounceTimer); debounceTimer = setTimeout(renderGraph, 300); });
+        renderGraph();
+
+        window.forceResetGraph = () => {
+            globalDragState.clear();
+            visualHistory = [];
+            document.querySelectorAll('.node, .cluster').forEach(el => { el.dataset.currDx = 0; el.dataset.currDy = 0; });
+            renderGraph();
+        }
+
+        // ==========================================
+        //  CSS VARIABLE CONFIG (ZERO LAYOUT RESETS)
+        // ==========================================
+        const root = document.documentElement;
+        document.getElementById('conf-node-bg').addEventListener('input', e => root.style.setProperty('--conf-node-bg', e.target.value));
+        document.getElementById('conf-node-border').addEventListener('input', e => root.style.setProperty('--conf-node-border', e.target.value));
+        document.getElementById('conf-cluster-bg').addEventListener('input', e => root.style.setProperty('--conf-cluster-bg', e.target.value));
+        document.getElementById('conf-text').addEventListener('input', e => root.style.setProperty('--conf-text', e.target.value));
+        document.getElementById('conf-line').addEventListener('input', e => root.style.setProperty('--conf-line', e.target.value));
+        
+        document.getElementById('conf-shadow').addEventListener('input', (e) => {
+            const val = e.target.value;
+            const svgEl = document.querySelector('#graph-output svg');
+            if(svgEl) svgEl.style.filter = `drop-shadow(0 ${val}px ${val * 1.5}px rgba(0,0,0,0.15))`;
+        });
+
+        document.getElementById('btn-sketch').addEventListener('click', (e) => {
+            e.currentTarget.classList.toggle('active');
+            const svgEl = document.querySelector('#graph-output svg');
+            if(svgEl) svgEl.classList.toggle('sketchify');
+        });
+
+        // Tabs & Buttons
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab, .tab-content').forEach(el => el.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.target).classList.add('active');
+            });
+        });
+
+        document.getElementById('theme-toggle').addEventListener('click', (e) => {
+            isDark = !isDark; document.body.setAttribute('data-theme', isDark ? 'dark' : 'light');
+            e.currentTarget.innerHTML = isDark ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+            editor.setOption('theme', isDark ? 'material-ocean' : 'idea');
+        });
+
+        document.getElementById('grid-toggle').addEventListener('click', (e) => {
+            const grid = document.querySelector('.grid-bg');
+            grid.style.opacity = grid.style.opacity === '0' ? '1' : '0';
+            e.currentTarget.classList.toggle('active');
+        });
+
+        // Pan & Zoom
+        const canvas = document.getElementById('canvas');
+        const updateTransform = () => { document.getElementById('graph-output').style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`; };
+        window.zoom = (amt) => { scale = Math.max(0.2, Math.min(scale + amt, 4)); updateTransform(); };
+        window.resetZoom = () => { scale = 1; translateX = 0; translateY = 0; updateTransform(); };
+        canvas.addEventListener('wheel', (e) => { e.preventDefault(); zoom(e.deltaY > 0 ? -0.1 : 0.1); });
+
+        // ==========================================
+        //  BULLETPROOF PHYSICS ENGINE
+        // ==========================================
+        let isVisualEditMode = false;
+        let isDraggingElement = false;
+        let activeDragElements = { cluster: null, nodes: [] };
+        let dragStartMouse = { x: 0, y: 0 };
+        let isPanning = false, startCanvasX, startCanvasY;
+
+        document.getElementById('btn-visual-edit').addEventListener('click', (e) => {
+            isVisualEditMode = !isVisualEditMode;
+            e.currentTarget.classList.toggle('active', isVisualEditMode);
+            document.getElementById('edit-badge').style.display = isVisualEditMode ? 'inline-block' : 'none';
+            document.getElementById('canvas').classList.toggle('visual-edit-mode', isVisualEditMode);
+        });
+
+        function findNearestNodeOnly(px, py) {
+            let nearest = null; let minDist = Infinity;
+            // Strictly check .node elements, never clusters, to ensure arrows stay attached.
+            document.querySelectorAll('.node').forEach(el => {
+                const tx = parseFloat(el.dataset.baseX) + parseFloat(el.dataset.currDx);
+                const ty = parseFloat(el.dataset.baseY) + parseFloat(el.dataset.currDy);
+                let bbox; try { bbox = el.getBBox(); } catch(e) { return; }
+                const cx = tx + bbox.x + bbox.width / 2;
+                const cy = ty + bbox.y + bbox.height / 2;
+
+                const dist = Math.hypot(px - cx, py - cy);
+                if (dist < minDist) { minDist = dist; nearest = el; }
+            });
+            return minDist < 250 ? nearest : null; 
+        }
+
+        function interpolateRubberBand(originalD, sdx, sdy, tdx, tdy) {
+            const cmdRegex = /([a-zA-Z])([^a-zA-Z]*)/g;
+            let match, commands = [];
+            while ((match = cmdRegex.exec(originalD)) !== null) commands.push({ type: match[1], args: match[2] });
+
+            let totalPairs = 0;
+            commands.forEach(cmd => { const nums = cmd.args.match(/-?\d+(\.\d+)?/g); if(nums) totalPairs += Math.floor(nums.length / 2); });
+            if (totalPairs === 0) return originalD;
+
+            let currentPair = 0, resultString = "";
+            commands.forEach(cmd => {
+                resultString += cmd.type;
+                const nums = cmd.args.match(/-?\d+(\.\d+)?/g);
+                if (!nums) { resultString += cmd.args; return; }
+
+                let argsStr = cmd.args;
+                let numMatches = [...argsStr.matchAll(/-?\d+(\.\d+)?/g)];
+                let pairCount = Math.floor(numMatches.length / 2);
+
+                for(let i = pairCount - 1; i >= 0; i--) {
+                    let globalIndex = currentPair + i;
+                    let ratio = totalPairs > 1 ? globalIndex / (totalPairs - 1) : 0;
+                    let dx = sdx * (1 - ratio) + tdx * ratio;
+                    let dy = sdy * (1 - ratio) + tdy * ratio;
+                    let xMatch = numMatches[i*2], yMatch = numMatches[i*2 + 1];
+                    let newX = (parseFloat(xMatch[0]) + dx).toFixed(2);
+                    let newY = (parseFloat(yMatch[0]) + dy).toFixed(2);
+
+                    argsStr = argsStr.substring(0, yMatch.index) + newY + argsStr.substring(yMatch.index + yMatch[0].length);
+                    argsStr = argsStr.substring(0, xMatch.index) + newX + argsStr.substring(xMatch.index + xMatch[0].length);
+                }
+                currentPair += pairCount;
+                resultString += argsStr;
+            });
+            return resultString;
+        }
+
+        function recalculateAllEdges() {
+            document.querySelectorAll('.edgePaths path').forEach(path => {
+                const sourceNode = document.getElementById(path.dataset.sourceId);
+                const targetNode = document.getElementById(path.dataset.targetId);
+                
+                const sdx = sourceNode ? parseFloat(sourceNode.dataset.currDx || 0) : 0;
+                const sdy = sourceNode ? parseFloat(sourceNode.dataset.currDy || 0) : 0;
+                const tdx = targetNode ? parseFloat(targetNode.dataset.currDx || 0) : 0;
+                const tdy = targetNode ? parseFloat(targetNode.dataset.currDy || 0) : 0;
+
+                if (sdx !== 0 || sdy !== 0 || tdx !== 0 || tdy !== 0) {
+                    path.setAttribute('d', interpolateRubberBand(path.dataset.baseD, sdx, sdy, tdx, tdy));
+                } else {
+                    path.setAttribute('d', path.dataset.baseD);
+                }
+            });
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (isVisualEditMode) {
+                const clickedNode = e.target.closest('.node');
+                const clickedCluster = e.target.closest('.cluster');
+
+                if (clickedNode || clickedCluster) {
+                    e.stopPropagation();
+                    isDraggingElement = true;
+                    dragStartMouse = { x: e.clientX, y: e.clientY };
+
+                    // Save HTML snapshot for instant undo
+                    visualHistory.push(document.getElementById('graph-output').innerHTML);
+                    if (visualHistory.length > 50) visualHistory.shift();
+
+                    activeDragElements = { cluster: null, nodes: [] };
+
+                    // Freeze start coords
+                    document.querySelectorAll('.node, .cluster').forEach(n => {
+                        n.dataset.startDx = parseFloat(n.dataset.currDx || 0);
+                        n.dataset.startDy = parseFloat(n.dataset.currDy || 0);
+                    });
+
+                    if (clickedNode) {
+                        activeDragElements.nodes.push(clickedNode);
+                    } else if (clickedCluster) {
+                        activeDragElements.cluster = clickedCluster;
+                        const cRect = clickedCluster.getBoundingClientRect();
+                        
+                        document.querySelectorAll('.node').forEach(n => {
+                            const nRect = n.getBoundingClientRect();
+                            const cx = nRect.left + nRect.width / 2;
+                            const cy = nRect.top + nRect.height / 2;
+                            if (cx >= cRect.left - 5 && cx <= cRect.right + 5 && cy >= cRect.top - 5 && cy <= cRect.bottom + 5) {
+                                activeDragElements.nodes.push(n);
+                            }
+                        });
+                    }
+                    return;
+                }
+            }
+            isPanning = true; startCanvasX = e.clientX - translateX; startCanvasY = e.clientY - translateY;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (isDraggingElement) {
+                const dx = (e.clientX - dragStartMouse.x) / scale;
+                const dy = (e.clientY - dragStartMouse.y) / scale;
+                
+                if (activeDragElements.cluster) {
+                    const c = activeDragElements.cluster;
+                    c.dataset.currDx = parseFloat(c.dataset.startDx) + dx;
+                    c.dataset.currDy = parseFloat(c.dataset.startDy) + dy;
+                    c.setAttribute('transform', `translate(${parseFloat(c.dataset.baseX) + parseFloat(c.dataset.currDx)}, ${parseFloat(c.dataset.baseY) + parseFloat(c.dataset.currDy)})`);
+                }
+
+                activeDragElements.nodes.forEach(n => {
+                    n.dataset.currDx = parseFloat(n.dataset.startDx) + dx;
+                    n.dataset.currDy = parseFloat(n.dataset.startDy) + dy;
+                    n.setAttribute('transform', `translate(${parseFloat(n.dataset.baseX) + parseFloat(n.dataset.currDx)}, ${parseFloat(n.dataset.baseY) + parseFloat(n.dataset.currDy)})`);
+                });
+                
+                recalculateAllEdges();
+                return;
+            }
+
+            if (!isPanning) return;
+            translateX = e.clientX - startCanvasX; translateY = e.clientY - startCanvasY; updateTransform();
+        });
+
+        window.addEventListener('mouseup', () => { isPanning = false; isDraggingElement = false; });
+
+        // Undo (Ctrl+Z)
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'z') {
+                if (document.activeElement.closest('.CodeMirror') || document.activeElement.tagName === 'INPUT') return;
+                if (visualHistory.length > 0) {
+                    document.getElementById('graph-output').innerHTML = visualHistory.pop();
+                    const toast = document.getElementById('undo-toast');
+                    toast.style.opacity = 1; setTimeout(() => toast.style.opacity = 0, 1500);
+                }
+            }
+        });
+
+        window.copyCode = () => {
+            navigator.clipboard.writeText(editor.getValue());
+            const btn = document.querySelector('.header-actions .btn:nth-child(2)');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+            setTimeout(() => btn.innerHTML = originalHTML, 2000);
+        };
+        
+        window.downloadSVG = () => {
+            const svgEl = document.querySelector('#graph-output svg');
+            if(!svgEl) return;
+            const clone = svgEl.cloneNode(true);
+            const svgData = new XMLSerializer().serializeToString(clone);
+            const blob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url; a.download = "mermaid-diagram.svg"; a.click();
+            URL.revokeObjectURL(url);
+        };
+    </script>
+</body>
+</html>
