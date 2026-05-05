@@ -62,8 +62,6 @@ Contributions, issues, and feature requests are welcome! Feel free to check the 
 
 ## 👨‍💻 Support & Credits
 
-Developed and designed by **Shreyas K S** and my dog. 🐶 
-
-If you find this tool helpful for your system designs, architecture planning, or university projects—there is a dog to feed! Consider leaving a ⭐ on the repository to support the project.
+If you find this tool helpful for your system designs, architecture planning, or university projects, Consider leaving a ⭐ on the repository to support the project.
 
 *Released under the [MIT License](LICENSE).
