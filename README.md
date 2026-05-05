@@ -10,6 +10,8 @@ A premium, interactive visual editor for [Mermaid.js](https://mermaid.js.org/).
 
 Mermaid Studio Pro bridges the gap between code-based diagramming and visual whiteboard tools. It features a custom-built, interactive physics engine that allows you to drag, drop, and visually rearrange your Mermaid nodes while keeping the underlying SVG arrows perfectly connected via rubber-band interpolation.
 
+<br>
+
 ### [-----> CLICK HERE TO OPEN LIVE WEBSITE](https://shreyas445.github.io/Mermaid-Graph-Editor/)
 <br>
 <br>
